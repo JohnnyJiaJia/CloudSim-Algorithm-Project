@@ -40,7 +40,7 @@ public class DatacenterBroker extends SimEntity {
 	/** The list of cloudlet submitted to the broker. 
          * @see #submitCloudletList(java.util.List) 
          */
-	protected List<? extends Cloudlet> cloudletList;
+	protected LinkedList<? extends Cloudlet> cloudletList; // **** Changed to a linked list
 
 	/** The list of submitted cloudlets. */
 	protected List<? extends Cloudlet> cloudletSubmittedList;
@@ -88,7 +88,7 @@ public class DatacenterBroker extends SimEntity {
 
 		setVmList(new ArrayList<Vm>());
 		setVmsCreatedList(new ArrayList<Vm>());
-		setCloudletList(new ArrayList<Cloudlet>());
+		setCloudletList(new LinkedList<Cloudlet>());				// **** changed to linked list
 		setCloudletSubmittedList(new ArrayList<Cloudlet>());
 		setCloudletReceivedList(new ArrayList<Cloudlet>());
 
@@ -352,20 +352,23 @@ public class DatacenterBroker extends SimEntity {
 		List<Cloudlet> successfullySubmitted = new ArrayList<Cloudlet>();
 
 		// **** Insert awesome algorithm here **** //
+		Log.printLine(" ---- SubmitCloudlets entered");
 
 
 		for (Cloudlet cloudlet : getCloudletList()) {
+			Log.printLine(cloudlet); // ****
 			Vm vm;
 			// The if component of this statement can be deleted once algorithm is implemented
 			// if user didn't bind this cloudlet and it has not been executed yet
 			if (cloudlet.getVmId() == -1) {
 				vm = getVmsCreatedList().get(vmIndex);
+				Log.printLine("Stuff's happening here ** * *  * *");
 			} else { // submit to the specific vm
 				vm = VmList.getById(getVmsCreatedList(), cloudlet.getVmId());
 				if (vm == null) { // vm was not created
 					if(!Log.isDisabled()) {				    
 					    Log.printConcatLine(CloudSim.clock(), ": ", getName(), ": Postponing execution of cloudlet ",
-							cloudlet.getCloudletId(), ": bount VM not available");
+							cloudlet.getCloudletId(), ": bound VM not available");
 					}
 					continue;
 				}
@@ -462,7 +465,7 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @param cloudletList the new cloudlet list
 	 */
-	protected <T extends Cloudlet> void setCloudletList(List<T> cloudletList) {
+	protected <T extends Cloudlet> void setCloudletList(LinkedList<T> cloudletList) {	// **** Changed to linked list
 		this.cloudletList = cloudletList;
 	}
 

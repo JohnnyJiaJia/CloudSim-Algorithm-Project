@@ -7,6 +7,7 @@
  */
 package org.cloudbus.cloudsim;
 
+import java.io.Console;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -81,6 +82,12 @@ public class Cloudlet {
      * @todo It would be an enum, to avoid using int constants.
      */
     private int status;
+
+    // ****
+    /**
+     * Sets a value for the priority of the job
+     */
+    private float priority;
 
     /**
      * The execution start time of this Cloudlet. With new functionalities, such
@@ -418,7 +425,7 @@ public class Cloudlet {
      * @pre cloudletOutputSize >= 1
      * @post $none
      */
-    public Cloudlet(
+    public Cloudlet(                    // **** This is the one that runs
             final int cloudletId,
             final long cloudletLength,
             final int pesNumber,
@@ -427,6 +434,7 @@ public class Cloudlet {
             final UtilizationModel utilizationModelCpu,
             final UtilizationModel utilizationModelRam,
             final UtilizationModel utilizationModelBw,
+            // **** final float job_priority,
             final boolean record) {
         userId = -1;          // to be set by a Broker or user
         status = CREATED;
@@ -436,6 +444,7 @@ public class Cloudlet {
         finishTime = -1.0;    // meaning this Cloudlet hasn't finished yet
         classType = 0;
         netToS = 0;
+        // **** priority = job_priority;
 
         // Cloudlet length, Input and Output size should be at least 1 byte.
         this.cloudletLength = Math.max(1, cloudletLength);
@@ -452,7 +461,6 @@ public class Cloudlet {
         vmId = -1;
         accumulatedBwCost = 0.0;
         costPerBw = 0.0;
-
         requiredFiles = new LinkedList<String>();
 
         setUtilizationModelCpu(utilizationModelCpu);
