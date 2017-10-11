@@ -17,10 +17,33 @@ import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.LinkedList;
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
+
+class Task {
+	int cloudlet_index;
+	float priority_level;
+	float priority;
+	float start_time;
+
+	public Task(int index, float p_level, float time){
+		this.cloudlet_index = index;
+		this.priority_level = p_level;
+
+		this.start_time = time - System.currentTimeMillis();
+		this.priority = this.priority_level * 1000 + this.start_time;
+	}
+
+	public void printHeader() {
+		System.out.printf("%-17s%-17s%-17s%-17s\n",
+				"Cloudlet Index", "Priority Level", "Priority Value", "Time Elapsed");
+	}
+
+	public void printTask() {
+		System.out.printf("%-17d%-17f%-17f%-17f\n",
+				this.cloudlet_index, this.priority_level, this.priority, this.start_time);
+	}
+}
 
 
 /**
@@ -52,6 +75,7 @@ public class CloudSimProject {
 				int num_user = 1;   // number of cloud users
 				Calendar calendar = Calendar.getInstance();
 				boolean trace_flag = false;  // mean trace events
+				float start_time = System.currentTimeMillis();
 
 				// Initialize the CloudSim library
 				CloudSim.init(num_user, calendar, trace_flag);
@@ -79,6 +103,7 @@ public class CloudSimProject {
 
 				//create two VMs
 				Vm vm1 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+				// **** can use CloudletSchedulerSpaceShared to run cloudlets consecutively
 
 				vmid++;
 				Vm vm2 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
@@ -92,7 +117,7 @@ public class CloudSimProject {
 
 				//Fifth step: Create two Cloudlets
 				cloudletList = new ArrayList<Cloudlet>();			// **** made this a linked list
-				List<Float> priorityList = new ArrayList<Float>();								// **** used to store the cloudlet priorities
+				List<Task> priorityList = new ArrayList<Task>();								// **** used to store the cloudlet priorities
 
 				//Cloudlet properties
 				int id = 0;
@@ -103,33 +128,51 @@ public class CloudSimProject {
 				UtilizationModel utilizationModel = new UtilizationModelFull();
 
 				Cloudlet cloudlet1 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+				priorityList.add(new Task(id, 2.0f, start_time));
 				cloudlet1.setUserId(brokerId);
 
 				id++;
 				Cloudlet cloudlet2 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+				priorityList.add(new Task(id, 1.0f, start_time));
 				cloudlet2.setUserId(brokerId);
 
 				// ****
 				id++;
 				Cloudlet cloudlet3 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+				priorityList.add(new Task(id, 5.0f, start_time));
 				cloudlet3.setUserId(brokerId);
 
 				// ****
 				id++;
 				Cloudlet cloudlet4 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+				priorityList.add(new Task(id, 1.0f, start_time));
 				cloudlet4.setUserId(brokerId);
 
 				//add the cloudlets to the cloudlet list and priorities to the priority list
 				cloudletList.add(cloudlet1);
-				priorityList.add(1.0f);
 				cloudletList.add(cloudlet2);
-				priorityList.add(2.0f);
 				cloudletList.add(cloudlet3);
-				priorityList.add(3.0f);
 				cloudletList.add(cloudlet4);
-				priorityList.add(1.0f);
 
 				// **** sort the cloudlet based off priorities list
+				System.out.println("-*-*-*-*-*-*- Unsorted");
+				System.out.printf("%-15s\t%-15s\t%-15s\t%-15s\n",
+						"Cloudlet Index", "Priority Level", "Priority Value", "Time Elapsed");
+				priorityList.stream().forEach((t) -> {
+					t.printTask();
+				});
+
+				// Sorts the list of tasks objects by their priority (in descending order) using a lambda function
+				Collections.sort(priorityList, ( Task t1, Task t2 ) -> Float.compare(t2.priority, t1.priority));
+
+				System.out.println("-*-*-*-*-*-*- Sorted");
+				System.out.printf("%-15s\t%-15s\t%-15s\t%-15s\n",
+						"Cloudlet Index", "Priority Level", "Priority Value", "Time Elapsed");
+				priorityList.stream().forEach((t) -> {
+					t.printTask();
+				});
+
+				// ****
 
 				//submit cloudlet list to the broker
 				broker.submitCloudletList(cloudletList);
