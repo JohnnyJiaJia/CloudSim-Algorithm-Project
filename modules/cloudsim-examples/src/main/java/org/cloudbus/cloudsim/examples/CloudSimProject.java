@@ -19,19 +19,30 @@ import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 class Task {
-	int cloudlet_index;
-	float priority_level;
-	float priority;
-	float start_time;
+	int cloudletIndex;
+	int priorityLevel;			// assigned a value from 1 to 10
+	float priority;				// calculated using priorityLevel and
+	int taskStartTime;			// when the task started (in ms)
+	int taskTime;				// how long the task has been waiting
 
-	public Task(int index, float p_level, float time){
-		this.cloudlet_index = index;
-		this.priority_level = p_level;
+	Task(int index, int p_level, long time){
+		this.cloudletIndex = index;
+		this.priorityLevel = p_level;
 
-		this.start_time = time - System.currentTimeMillis();
-		this.priority = this.priority_level * 1000 + this.start_time;
+		this.taskStartTime = (int) System.currentTimeMillis();
+		this.taskTime = (int) (System.currentTimeMillis() - this.taskStartTime);
+		this.priority = this.priorityLevel * 100;
+	}
+
+	public void refreshTask() {
+		this.taskTime = (int) (System.currentTimeMillis() - this.taskStartTime);
+		System.out.println(System.currentTimeMillis());
+		System.out.println(this.taskStartTime);
+		this.priority = this.priorityLevel * 100 + (this.taskTime/10);
+		System.out.println(this.priority);
 	}
 
 	public void printHeader() {
@@ -40,124 +51,120 @@ class Task {
 	}
 
 	public void printTask() {
-		System.out.printf("%-17d%-17f%-17f%-17f\n",
-				this.cloudlet_index, this.priority_level, this.priority, this.start_time);
+		System.out.printf("%-17d%-17d%-17.2f%-17d\n",
+				this.cloudletIndex, this.priorityLevel, this.priority, this.taskTime);
 	}
 }
 
 
 /**
- * A simple example showing how to create
- * a datacenter with one host and run two
- * cloudlets on it. The cloudlets run in
- * VMs with the same MIPS requirements.
- * The cloudlets will take the same time to
- * complete the execution.
+ * A class defining the requirements of a cloudSim project
  */
 public class CloudSimProject {
 
-	/** The cloudlet list. */
+	/** Initialises the cloudlet list. */
 	private static List<Cloudlet> cloudletList;
 
-	/** The vmlist. */
+	/** Initialises the VMlist. */
 	private static List<Vm> vmlist;
 
 	/**
-	 * Creates main() to run this example
+	 * Creates main() to run the project
 	 */
 	public static void main(String[] args) {
 
-		Log.printLine("Starting CloudSimExample2...");
+		Log.printLine("Starting CloudSimProject...");
 
 	        try {
 	        	// First step: Initialize the CloudSim package. It should be called
 				// before creating any entities.
-				int num_user = 1;   // number of cloud users
+				int num_user = 1;   							// number of cloud users
 				Calendar calendar = Calendar.getInstance();
-				boolean trace_flag = false;  // mean trace events
-				float start_time = System.currentTimeMillis();
+				boolean trace_flag = false;  					// mean trace events
+				long start_time = System.currentTimeMillis();	// simulations start time
 
 				// Initialize the CloudSim library
 				CloudSim.init(num_user, calendar, trace_flag);
 
 				// Second step: Create Datacenters
-				//Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
+				// Datacenters are the resource providers in CloudSim (at least one needed to run a CloudSim simulation)
 				@SuppressWarnings("unused")
 				Datacenter datacenter0 = createDatacenter("Datacenter_0");
 
-				//Third step: Create Broker
+				// Third step: Create Broker
 				DatacenterBroker broker = createBroker();
 				int brokerId = broker.getId();
 
-				//Fourth step: Create one virtual machine
+				// Fourth step: Create some virtual machines
 				vmlist = new ArrayList<Vm>();
 
-				//VM description
-				int vmid = 0;
-				int mips = 250;
-				long size = 10000; //image size (MB)
-				int ram = 512; //vm memory (MB)
-				long bw = 1000;
-				int pesNumber = 1; //number of cpus
-				String vmm = "Xen"; //VMM name
+				// VM description
+				int vmid = 0;			// ID of the VM
+				int mips = 250;			// (Millions of Instructions Per Second)
+				long size = 10000; 		// image size (MB) - given amount of storage
+				int ram = 512; 			// vm memory (MB) - RAM
+				long bw = 1000;			// Bandwidth
+ 				int pesNumber = 1; 		// number of CPUs
+				String vmm = "Xen"; 	// VM name
 
-				//create two VMs
+				// Create some VMs
 				Vm vm1 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-				// **** can use CloudletSchedulerSpaceShared to run cloudlets consecutively
-
 				vmid++;
 				Vm vm2 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+				// Can use CloudletSchedulerSpaceShared instead of CloudletSchedulerTimeShared to run cloudlets
+				// ... consecutively instead of concurrently
 
-				//add the VMs to the vmList
+				// Add the VMs to the vmList
 				vmlist.add(vm1);
 				vmlist.add(vm2);
 
-				//submit vm list to the broker
+				// Submit vm list to the broker
 				broker.submitVmList(vmlist);
 
-				//Fifth step: Create two Cloudlets
-				cloudletList = new ArrayList<Cloudlet>();			// **** made this a linked list
-				List<Task> priorityList = new ArrayList<Task>();								// **** used to store the cloudlet priorities
+				// Fifth step: Create some Cloudlets
+				cloudletList = new ArrayList<Cloudlet>();
+				List<Task> priorityList = new ArrayList<Task>();	// **** used to store the cloudlet priority information
+				List<Cloudlet> submissionList = new ArrayList<Cloudlet>();	// **** used to store the cloudlet priority information
 
-				//Cloudlet properties
+				// Cloudlet properties
 				int id = 0;
-				pesNumber = 1;	// Number of processing elements required to execute the cloudlet
-				long length = 250000;
-				long fileSize = 300;
-				long outputSize = 300;
+				pesNumber = 1;				// Number of processing elements required to execute the cloudlet
+				long length = 250000;		// Execution length of cloudlet (in MIPS)
+				long fileSize = 300;		// Size of the cloudlet on input (the program + input data sizes)
+				long outputSize = 300;		// Output size of the cloudlet (in Bytes)
 				UtilizationModel utilizationModel = new UtilizationModelFull();
 
+				// Define cloudlets, task object, and add them to their respective lists
 				Cloudlet cloudlet1 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				priorityList.add(new Task(id, 2.0f, start_time));
+				cloudletList.add(cloudlet1);
+				priorityList.add(new Task(id, 2, start_time));
 				cloudlet1.setUserId(brokerId);
-
 				id++;
+
 				Cloudlet cloudlet2 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				priorityList.add(new Task(id, 1.0f, start_time));
+				cloudletList.add(cloudlet2);
+				priorityList.add(new Task(id, 1, start_time));
 				cloudlet2.setUserId(brokerId);
-
-				// ****
 				id++;
+
 				Cloudlet cloudlet3 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				priorityList.add(new Task(id, 5.0f, start_time));
+				cloudletList.add(cloudlet3);
+				priorityList.add(new Task(id, 5, start_time));
 				cloudlet3.setUserId(brokerId);
-
-				// ****
 				id++;
+
 				Cloudlet cloudlet4 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				priorityList.add(new Task(id, 1.0f, start_time));
+				cloudletList.add(cloudlet4);
+				priorityList.add(new Task(id, 1, start_time));
 				cloudlet4.setUserId(brokerId);
 
-				//add the cloudlets to the cloudlet list and priorities to the priority list
-				cloudletList.add(cloudlet1);
-				cloudletList.add(cloudlet2);
-				cloudletList.add(cloudlet3);
-				cloudletList.add(cloudlet4);
+				TimeUnit.SECONDS.sleep(12);		// Puts the program to sleep for 12 seconds
+				priorityList.get(1).refreshTask();		// Refreshes the priority calculation for only one task
 
-				// **** sort the cloudlet based off priorities list
+				// Prints the List of unsorted tasks
 				System.out.println("-*-*-*-*-*-*- Unsorted");
 				System.out.printf("%-15s\t%-15s\t%-15s\t%-15s\n",
-						"Cloudlet Index", "Priority Level", "Priority Value", "Time Elapsed");
+						"Cloudlet Index", " Priority Level", "  Priority Value", "Time Elapsed");
 				priorityList.stream().forEach((t) -> {
 					t.printTask();
 				});
@@ -165,36 +172,30 @@ public class CloudSimProject {
 				// Sorts the list of tasks objects by their priority (in descending order) using a lambda function
 				Collections.sort(priorityList, ( Task t1, Task t2 ) -> Float.compare(t2.priority, t1.priority));
 
+				// Prints the List of sorted tasks
 				System.out.println("-*-*-*-*-*-*- Sorted");
 				System.out.printf("%-15s\t%-15s\t%-15s\t%-15s\n",
-						"Cloudlet Index", "Priority Level", "Priority Value", "Time Elapsed");
+						"Cloudlet Index", " Priority Level", "  Priority Value", "Time Elapsed");
 				priorityList.stream().forEach((t) -> {
 					t.printTask();
 				});
 
-				// ****
+				// Adds each cloudlet to the submissionList in priority order
+				priorityList.forEach((t) -> submissionList.add(cloudletList.get(t.cloudletIndex)));
 
-				//submit cloudlet list to the broker
-				broker.submitCloudletList(cloudletList);
+				// Submit the (old) cloudlet list to the broker
+				//broker.submitCloudletList(cloudletList);
+
+				// Submit new cloudlet list to the broker
+				broker.submitCloudletList(submissionList);
 
 				// **** cloudletList.clear();			// **** Clears the list of Cloudlets
 
-				// **** Inserts new cloudlets into the list
-				// ****cloudletList.add(cloudlet3);
-				// ****cloudletList.add(cloudlet4);
-
-				// **** submit new cloudlet list to the broker
-				// ****broker.submitCloudletList(cloudletList);
-				// **** need to change submitCloudletList in DatacenterBroker.java to accommodate priority list
-
-				//bind the cloudlets to the vms. This way, the broker
-				// will submit the bound cloudlets only to the specific VM
-				broker.bindCloudletToVm(cloudlet1.getCloudletId(),vm1.getId());
-				broker.bindCloudletToVm(cloudlet2.getCloudletId(),vm2.getId());
+				// Example of how to bind cloudlets to a VM
+				//broker.bindCloudletToVm(cloudlet1.getCloudletId(),vm1.getId());
 
 				// Sixth step: Starts the simulation
 				CloudSim.startSimulation();
-
 
 				// Final step: Print results when simulation is over
 				List<Cloudlet> newList = broker.getCloudletReceivedList();
@@ -216,10 +217,6 @@ public class CloudSimProject {
 	            Log.printLine("The simulation has been terminated due to an unexpected error");
 	        }
 	    }
-//		////////////////////////////////////////////////
-//	    static Vm findVmById(int id,, List<Vm> list){
-//			return null;
-//		}
 
 		private static Datacenter createDatacenter(String name){
 

@@ -351,18 +351,12 @@ public class DatacenterBroker extends SimEntity {
 		int vmIndex = 0;
 		List<Cloudlet> successfullySubmitted = new ArrayList<Cloudlet>();
 
-		// **** Insert awesome algorithm here **** //
-		Log.printLine(" ---- SubmitCloudlets entered");
-
-
 		for (Cloudlet cloudlet : getCloudletList()) {
-			Log.printLine(cloudlet); // ****
 			Vm vm;
 			// The if component of this statement can be deleted once algorithm is implemented
 			// if user didn't bind this cloudlet and it has not been executed yet
 			if (cloudlet.getVmId() == -1) {
 				vm = getVmsCreatedList().get(vmIndex);
-				Log.printLine("Stuff's happening here ** * *  * *");
 			} else { // submit to the specific vm
 				vm = VmList.getById(getVmsCreatedList(), cloudlet.getVmId());
 				if (vm == null) { // vm was not created
