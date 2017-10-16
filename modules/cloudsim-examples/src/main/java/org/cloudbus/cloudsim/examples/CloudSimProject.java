@@ -39,10 +39,8 @@ class Task {
 
 	public void refreshTask() {
 		this.taskTime = (int) (System.currentTimeMillis() - this.taskStartTime);
-		System.out.println(System.currentTimeMillis());
-		System.out.println(this.taskStartTime);
-		this.priority = this.priorityLevel * 100 + (this.taskTime/10);
-		System.out.println(this.priority);
+		// Equation below defines how priority escalates with time
+		this.priority = this.priorityLevel * 100 + (this.taskTime*this.priorityLevel/1000);
 	}
 
 	public void printHeader() {
@@ -158,11 +156,11 @@ public class CloudSimProject {
 				priorityList.add(new Task(id, 1, start_time));
 				cloudlet4.setUserId(brokerId);
 
-				TimeUnit.SECONDS.sleep(12);		// Puts the program to sleep for 12 seconds
+				TimeUnit.SECONDS.sleep(12);				// Puts the program to sleep for 12 seconds
 				priorityList.get(1).refreshTask();		// Refreshes the priority calculation for only one task
 
 				// Prints the List of unsorted tasks
-				System.out.println("-*-*-*-*-*-*- Unsorted");
+				System.out.println("-*-*-*-*-*-*-*-*-*-*-*- Unsorted Cloudlets -*-*-*-*-*-*-*-*-*-*-*-");
 				System.out.printf("%-15s\t%-15s\t%-15s\t%-15s\n",
 						"Cloudlet Index", " Priority Level", "  Priority Value", "Time Elapsed");
 				priorityList.stream().forEach((t) -> {
@@ -173,7 +171,7 @@ public class CloudSimProject {
 				Collections.sort(priorityList, ( Task t1, Task t2 ) -> Float.compare(t2.priority, t1.priority));
 
 				// Prints the List of sorted tasks
-				System.out.println("-*-*-*-*-*-*- Sorted");
+				System.out.println("-*-*-*-*-*-*-*-*-*-*-*-  Sorted Cloudlets  -*-*-*-*-*-*-*-*-*-*-*-");
 				System.out.printf("%-15s\t%-15s\t%-15s\t%-15s\n",
 						"Cloudlet Index", " Priority Level", "  Priority Value", "Time Elapsed");
 				priorityList.stream().forEach((t) -> {
