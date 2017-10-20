@@ -5,6 +5,8 @@
  * Licence:      GPL - http://www.gnu.org/copyleft/gpl.html
  *
  * Copyright (c) 2009, The University of Melbourne, Australia
+ * Last modified: 20/10/17
+ * Note:		Code modified to add priority based sorting to cloudlets
  */
 
 package org.cloudbus.cloudsim.examples;
@@ -21,33 +23,39 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+// This class is used to define a new object that houses the priority level and cloudlet id properties, and refresh
+// ... method in order to calculate a priority value for each task that can be dynamically updated
 class Task {
 	int cloudletIndex;
-	int priorityLevel;			// assigned a value from 1 to 10
-	float priority;				// calculated using priorityLevel and
-	int taskStartTime;			// when the task started (in ms)
-	int taskTime;				// how long the task has been waiting
+	int priorityLevel;			// Assigned a value from 1 to 10 (not enforced yet)
+	float priority;				// The priority value calculated using priorityLevel and the taskTime
+	int taskStartTime;			// When the task started (in ms)
+	int taskTime;				// How long the task has been waiting
 
-	Task(int index, int p_level, long time){
-		this.cloudletIndex = index;
-		this.priorityLevel = p_level;
+	// Initialises a task object, sets passed values to object properties
+	Task(int index, int p_level){
+		this.cloudletIndex = index;			// sets the cloudlet index
+		this.priorityLevel = p_level;		// sets the priority level
 
-		this.taskStartTime = (int) System.currentTimeMillis();
-		this.taskTime = (int) (System.currentTimeMillis() - this.taskStartTime);
-		this.priority = this.priorityLevel * 100;
+		this.taskStartTime = (int) System.currentTimeMillis();	// sets the current time (initial task time)
+		this.priority = this.priorityLevel * 100;				// doesn't use taskTime as task has just been initialised
 	}
 
+	// Finds the time the task has been waiting and recalculates its priority value
 	public void refreshTask() {
+		// retrieves time waiting
 		this.taskTime = (int) (System.currentTimeMillis() - this.taskStartTime);
 		// Equation below defines how priority escalates with time
 		this.priority = this.priorityLevel * 100 + (this.taskTime*this.priorityLevel/1000);
 	}
 
+	// Used to nicely format output header
 	public void printHeader() {
 		System.out.printf("%-17s%-17s%-17s%-17s\n",
 				"Cloudlet Index", "Priority Level", "Priority Value", "Time Elapsed");
 	}
 
+	// Nicely formats task output
 	public void printTask() {
 		System.out.printf("%-17d%-17d%-17.2f%-17d\n",
 				this.cloudletIndex, this.priorityLevel, this.priority, this.taskTime);
@@ -135,25 +143,25 @@ public class CloudSimProject {
 				// Define cloudlets, task object, and add them to their respective lists
 				Cloudlet cloudlet1 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 				cloudletList.add(cloudlet1);
-				priorityList.add(new Task(id, 2, start_time));
+				priorityList.add(new Task(id, 2));
 				cloudlet1.setUserId(brokerId);
 				id++;
 
 				Cloudlet cloudlet2 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 				cloudletList.add(cloudlet2);
-				priorityList.add(new Task(id, 1, start_time));
+				priorityList.add(new Task(id, 1));
 				cloudlet2.setUserId(brokerId);
 				id++;
 
 				Cloudlet cloudlet3 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 				cloudletList.add(cloudlet3);
-				priorityList.add(new Task(id, 5, start_time));
+				priorityList.add(new Task(id, 5));
 				cloudlet3.setUserId(brokerId);
 				id++;
 
 				Cloudlet cloudlet4 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 				cloudletList.add(cloudlet4);
-				priorityList.add(new Task(id, 1, start_time));
+				priorityList.add(new Task(id, 1));
 				cloudlet4.setUserId(brokerId);
 
 				TimeUnit.SECONDS.sleep(12);				// Puts the program to sleep for 12 seconds
@@ -169,6 +177,8 @@ public class CloudSimProject {
 
 				// Sorts the list of tasks objects by their priority (in descending order) using a lambda function
 				Collections.sort(priorityList, ( Task t1, Task t2 ) -> Float.compare(t2.priority, t1.priority));
+				// This method of sorting can also be implemented on the Cloudlet list it's decided to
+				// ... add the priority attribute to the Cloudlet class
 
 				// Prints the List of sorted tasks
 				System.out.println("-*-*-*-*-*-*-*-*-*-*-*-  Sorted Cloudlets  -*-*-*-*-*-*-*-*-*-*-*-");
@@ -187,33 +197,28 @@ public class CloudSimProject {
 				// Submit new cloudlet list to the broker
 				broker.submitCloudletList(submissionList);
 
-				// **** cloudletList.clear();			// **** Clears the list of Cloudlets
-
-				// Example of how to bind cloudlets to a VM
-				//broker.bindCloudletToVm(cloudlet1.getCloudletId(),vm1.getId());
-
 				// Sixth step: Starts the simulation
 				CloudSim.startSimulation();
 
 				// Final step: Print results when simulation is over
 				List<Cloudlet> newList = broker.getCloudletReceivedList();
-
-				// ** Grabs some test metrics ** ??
+				// Retrieves some test metrics
 				for(Cloudlet cl: newList){
 					System.out.println(cl.getActualCPUTime());
-					//System.out.println(findVmById(cl.getVmId(), broker.getVmList()).getBw());
 				}
 
 				CloudSim.stopSimulation();
-
 				printCloudletList(newList);
-
-				Log.printLine("CloudSimExample2 finished!");
+				Log.printLine("CloudSimProject finished!");
 	        }
 	        catch (Exception e) {
 	            e.printStackTrace();
 	            Log.printLine("The simulation has been terminated due to an unexpected error");
 	        }
+		// Example of how to bind cloudlets to a VM
+		//broker.bindCloudletToVm(cloudlet1.getCloudletId(),vm1.getId());
+		// How to clear the cloudlet list
+		//cloudletList.clear();
 	    }
 
 		private static Datacenter createDatacenter(String name){
@@ -302,10 +307,11 @@ public class CloudSimProject {
 	        Cloudlet cloudlet;
 
 	        String indent = "    ";
+			String h_indent = "  ";
 	        Log.printLine();
 	        Log.printLine("========== OUTPUT ==========");
-	        Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +
-	                "Data center ID" + indent + "VM ID" + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
+	        Log.printLine("Cloudlet ID" + h_indent + "STATUS" + h_indent +
+	                "  Data center ID" + h_indent + " VM ID" + h_indent + "   Time" + h_indent + "  Start Time" + h_indent + "  Finish Time");
 
 	        DecimalFormat dft = new DecimalFormat("###.##");
 	        for (int i = 0; i < size; i++) {
