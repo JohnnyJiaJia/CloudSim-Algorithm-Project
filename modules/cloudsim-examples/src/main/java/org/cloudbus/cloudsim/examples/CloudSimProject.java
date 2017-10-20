@@ -6,7 +6,7 @@
  *
  * Copyright (c) 2009, The University of Melbourne, Australia
  * Last modified: 20/10/17
- * Note:		Code modified to add priority based sorting to cloudlets
+ * Note:		Code modified to demonstrate priority based sorting and testing to cloudlets
  */
 
 package org.cloudbus.cloudsim.examples;
@@ -57,7 +57,7 @@ class Task {
 
 	// Nicely formats task output
 	public void printTask() {
-		System.out.printf("%-17d%-17d%-17.2f%-17d\n",
+		System.out.printf("%-17d%-17d%-17.2f% -17d\n",
 				this.cloudletIndex, this.priorityLevel, this.priority, this.taskTime);
 	}
 }
@@ -87,7 +87,6 @@ public class CloudSimProject {
 				int num_user = 1;   							// number of cloud users
 				Calendar calendar = Calendar.getInstance();
 				boolean trace_flag = false;  					// mean trace events
-				long start_time = System.currentTimeMillis();	// simulations start time
 
 				// Initialize the CloudSim library
 				CloudSim.init(num_user, calendar, trace_flag);
@@ -105,7 +104,7 @@ public class CloudSimProject {
 				vmlist = new ArrayList<Vm>();
 
 				// VM description
-				int vmid = 0;			// ID of the VM
+				int vmid;			// ID of the VM
 				int mips = 250;			// (Millions of Instructions Per Second)
 				long size = 10000; 		// image size (MB) - given amount of storage
 				int ram = 512; 			// vm memory (MB) - RAM
@@ -113,56 +112,40 @@ public class CloudSimProject {
  				int pesNumber = 1; 		// number of CPUs
 				String vmm = "Xen"; 	// VM name
 
-				// Create some VMs
-				Vm vm1 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-				vmid++;
-				Vm vm2 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+				// Create some VMs for testing
+				for (vmid = 0; vmid < 4; vmid++){
+					Vm vm1 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared());
+					vmlist.add(vm1);	// Add the VM to the list
+				}
 				// Can use CloudletSchedulerSpaceShared instead of CloudletSchedulerTimeShared to run cloudlets
 				// ... consecutively instead of concurrently
-
-				// Add the VMs to the vmList
-				vmlist.add(vm1);
-				vmlist.add(vm2);
 
 				// Submit vm list to the broker
 				broker.submitVmList(vmlist);
 
 				// Fifth step: Create some Cloudlets
 				cloudletList = new ArrayList<Cloudlet>();
-				List<Task> priorityList = new ArrayList<Task>();	// **** used to store the cloudlet priority information
+				List<Task> priorityList = new ArrayList<Task>();		// **** used to store the cloudlet priority information
 				List<Cloudlet> submissionList = new ArrayList<Cloudlet>();	// **** used to store the cloudlet priority information
 
-				// Cloudlet properties
-				int id = 0;
+				// Test Cloudlet properties
+				int id;
 				pesNumber = 1;				// Number of processing elements required to execute the cloudlet
 				long length = 250000;		// Execution length of cloudlet (in MIPS)
 				long fileSize = 300;		// Size of the cloudlet on input (the program + input data sizes)
 				long outputSize = 300;		// Output size of the cloudlet (in Bytes)
 				UtilizationModel utilizationModel = new UtilizationModelFull();
+				int [] priorityTestVals = {2, 1, 5, 6, 3, 4, 2, 5};
 
-				// Define cloudlets, task object, and add them to their respective lists
-				Cloudlet cloudlet1 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				cloudletList.add(cloudlet1);
-				priorityList.add(new Task(id, 2));
-				cloudlet1.setUserId(brokerId);
-				id++;
+				// Creates a number of cloudlets with different properties for testing purposes
+				for (id = 0; id < 8; id++) {
+					// Define cloudlets, task object, and add them to their respective lists
+					Cloudlet cloudlet1 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+					cloudletList.add(cloudlet1);
+					priorityList.add(new Task(id, priorityTestVals[id]));
+					cloudlet1.setUserId(brokerId);
+				}
 
-				Cloudlet cloudlet2 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				cloudletList.add(cloudlet2);
-				priorityList.add(new Task(id, 1));
-				cloudlet2.setUserId(brokerId);
-				id++;
-
-				Cloudlet cloudlet3 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				cloudletList.add(cloudlet3);
-				priorityList.add(new Task(id, 5));
-				cloudlet3.setUserId(brokerId);
-				id++;
-
-				Cloudlet cloudlet4 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-				cloudletList.add(cloudlet4);
-				priorityList.add(new Task(id, 1));
-				cloudlet4.setUserId(brokerId);
 
 				TimeUnit.SECONDS.sleep(12);				// Puts the program to sleep for 12 seconds
 				priorityList.get(1).refreshTask();		// Refreshes the priority calculation for only one task
@@ -193,7 +176,7 @@ public class CloudSimProject {
 
 				// Submit the (old) cloudlet list to the broker
 				//broker.submitCloudletList(cloudletList);
-
+				// OR
 				// Submit new cloudlet list to the broker
 				broker.submitCloudletList(submissionList);
 
@@ -202,10 +185,6 @@ public class CloudSimProject {
 
 				// Final step: Print results when simulation is over
 				List<Cloudlet> newList = broker.getCloudletReceivedList();
-				// Retrieves some test metrics
-				for(Cloudlet cl: newList){
-					System.out.println(cl.getActualCPUTime());
-				}
 
 				CloudSim.stopSimulation();
 				printCloudletList(newList);
@@ -219,6 +198,10 @@ public class CloudSimProject {
 		//broker.bindCloudletToVm(cloudlet1.getCloudletId(),vm1.getId());
 		// How to clear the cloudlet list
 		//cloudletList.clear();
+		// Retrieves some test metrics
+//				for(Cloudlet cl: newList){
+//					System.out.println(cl.getActualCPUTime());
+//				}
 	    }
 
 		private static Datacenter createDatacenter(String name){
