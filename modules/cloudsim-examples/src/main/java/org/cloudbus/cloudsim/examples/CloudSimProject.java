@@ -146,9 +146,10 @@ public class CloudSimProject {
 					cloudlet1.setUserId(brokerId);
 				}
 
-
-				TimeUnit.SECONDS.sleep(12);				// Puts the program to sleep for 12 seconds
-				priorityList.get(1).refreshTask();		// Refreshes the priority calculation for only one task
+				for (int i = 0; i < id; i++){
+					TimeUnit.SECONDS.sleep(2);				// Puts the program to sleep for 12 seconds
+					priorityList.get(i).refreshTask();		// Refreshes the priority calculation for only one task
+				}
 
 				// Prints the List of unsorted tasks
 				System.out.println("-*-*-*-*-*-*-*-*-*-*-*- Unsorted Cloudlets -*-*-*-*-*-*-*-*-*-*-*-");
